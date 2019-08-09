@@ -21,20 +21,17 @@ contract QTChainVesting is Ownable {
   using SafeERC20 for IERC20;
 
   event TokensReleased(address token, uint256 amount);
-  event TokenVestingRevoked(address token);
-
-  // beneficiary of tokens after they are released
-  address private _beneficiary;
 
   // Durations and timestamps are expressed in UNIX time, the same units as block.timestamp.
-  uint256 private _cliff;
+  uint256 constant private _firstMonthPercentage = 10;
+  uint256 constant private _otherMonthlyPercentage = 15;
+  uint256 constant private _hundred = 100;
+  uint256 constant private _oneMonth = 30 days;
+  uint256 constant private _duration = 180 days;
   uint256 private _start;
-  uint256 private _duration;
   IERC20 private _token;
-  bool private _revocable;
-
   mapping(address => uint256) private _released;
-  mapping(address => bool) private _revoked;
+  mapping(address => uint256) private _lockBalance;
 
   /**
    * @dev Creates a vesting contract that vests its balance of any ERC20 token to the
@@ -46,33 +43,10 @@ contract QTChainVesting is Ownable {
    * @param duration duration in seconds of the period in which the tokens will vest
    * @param revocable whether the vesting is revocable or not
    */
-  constructor (IERC20 token, address beneficiary, uint256 start, uint256 cliffDuration, uint256 duration, bool revocable) public {
-    require(beneficiary != address(0), "TokenVesting: beneficiary is the zero address");
-    // solhint-disable-next-line max-line-length
-    require(cliffDuration <= duration, "TokenVesting: cliff is longer than duration");
-    require(duration > 0, "TokenVesting: duration is 0");
-    // solhint-disable-next-line max-line-length
-    require(start.add(duration) > block.timestamp, "TokenVesting: final time is before current time");
+  constructor (IERC20 token, uint256 start) public {
+    require(start > block.timestamp, "TokenVesting: start time is before current time");
     _token = token;
-    _beneficiary = beneficiary;
-    _revocable = revocable;
-    _duration = duration;
-    _cliff = start.add(cliffDuration);
     _start = start;
-  }
-
-  /**
-   * @return the beneficiary of the tokens.
-   */
-  function beneficiary() public view returns (address) {
-    return _beneficiary;
-  }
-
-  /**
-   * @return the cliff time of the token vesting.
-   */
-  function cliff() public view returns (uint256) {
-    return _cliff;
   }
 
   /**
@@ -83,92 +57,60 @@ contract QTChainVesting is Ownable {
   }
 
   /**
-   * @return the duration of the token vesting.
-   */
-  function duration() public view returns (uint256) {
-    return _duration;
-  }
-
-  /**
-   * @return true if the vesting is revocable.
-   */
-  function revocable() public view returns (bool) {
-    return _revocable;
-  }
-
-  /**
    * @return the amount of the token released.
    */
-  function released(address token) public view returns (uint256) {
-    return _released[address(_token)];
-  }
-
-  /**
-   * @return true if the token is revoked.
-   */
-  function revoked(address token) public view returns (bool) {
-    return _revoked[address(_token)];
+  function released(address beneficiary) public view returns (uint256) {
+    return _released[beneficiary];
   }
 
   /**
    * @notice Transfers vested tokens to beneficiary.
    * @param token ERC20 token which is being vested
    */
-  function release(IERC20 token) public {
-    uint256 unreleased = _releasableAmount(_token);
+  function release(address beneficiary) public {
+    uint256 unreleased = _releasableAmount(beneficiary);
 
     require(unreleased > 0, "TokenVesting: no tokens are due");
 
-    _released[address(_token)] = _released[address(_token)].add(unreleased);
+    _released[beneficiary] = _released[beneficiary].add(unreleased);
 
-    _token.safeTransfer(_beneficiary, unreleased);
+    _token.safeTransfer(beneficiary, unreleased);
 
-    emit TokensReleased(address(_token), unreleased);
+    emit TokensReleased(beneficiary, unreleased);
   }
 
-  /**
-   * @notice Allows the owner to revoke the vesting. Tokens already vested
-   * remain in the contract, the rest are returned to the owner.
-   * @param token ERC20 token which is being vested
-   */
-  function revoke(IERC20 token) public onlyOwner {
-    require(_revocable, "TokenVesting: cannot revoke");
-    require(!_revoked[address(_token)], "TokenVesting: token already revoked");
-
-    uint256 balance = _token.balanceOf(address(this));
-
-    uint256 unreleased = _releasableAmount(_token);
-    uint256 refund = balance.sub(unreleased);
-
-    _revoked[address(_token)] = true;
-
-    _token.safeTransfer(owner(), refund);
-
-    emit TokenVestingRevoked(address(_token));
-  }
 
   /**
    * @dev Calculates the amount that has already vested but hasn't been released yet.
    * @param token ERC20 token which is being vested
    */
-  function _releasableAmount(IERC20 token) private view returns (uint256) {
-    return _vestedAmount(_token).sub(_released[address(_token)]);
+  function _releasableAmount(address beneficiary) private view returns (uint256) {
+    return _vestedAmount(beneficiary).sub(_released[beneficiary]);
   }
 
   /**
    * @dev Calculates the amount that has already vested.
    * @param token ERC20 token which is being vested
    */
-  function _vestedAmount(IERC20 token) private view returns (uint256) {
-    uint256 currentBalance = _token.balanceOf(address(this));
-    uint256 totalBalance = currentBalance.add(_released[address(_token)]);
+  function _vestedAmount(address beneficiary) private view returns (uint256) {
+    uint256 totalBalance = _lockBalance[beneficiary];
+    return totalBalance.mul(calculateCurrentPercentage()).div(_hundred);
+  }
 
-    if (block.timestamp < _cliff) {
+  /**
+   * @dev Calculates the percentage that has already vested.
+   */
+  function _calculateCurrentPercentage() private view returns (uint256) {
+    if (block.timestamp < _start) {
       return 0;
-    } else if (block.timestamp >= _start.add(_duration) || _revoked[address(_token)]) {
-      return totalBalance;
+    } else if (block.timestamp < _start.add(_oneMonth)) {
+      return _firstMonthPercentage;
+    } else if (block.timestamp >= _start.add(_duration)) {
+      return _hundred;
     } else {
-      return totalBalance.mul(block.timestamp.sub(_start)).div(_duration);
+      uint256 periods = block.timestamp.sub(_start).sub(_oneMonth).div(_oneMonth);
+      uint256 increasePercent = periods.mul(_otherMonthlyPercentage).add(_otherMonthlyPercentage);
+      return _firstMonthPercentage.add(increasePercent);
     }
   }
 }
