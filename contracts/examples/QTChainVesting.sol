@@ -100,14 +100,14 @@ contract QTChainVesting is Ownable {
    * @return the amount of the token released.
    */
   function released(address token) public view returns (uint256) {
-    return _released[_token];
+    return _released[address(_token)];
   }
 
   /**
    * @return true if the token is revoked.
    */
   function revoked(address token) public view returns (bool) {
-    return _revoked[_token];
+    return _revoked[address(_token)];
   }
 
   /**
