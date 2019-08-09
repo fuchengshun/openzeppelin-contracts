@@ -30,11 +30,11 @@ contract QTChainVesting is Ownable {
   uint256 private _cliff;
   uint256 private _start;
   uint256 private _duration;
-
+  IERC20 private _token;
   bool private _revocable;
 
-  mapping (address => uint256) private _released;
-  mapping (address => bool) private _revoked;
+  mapping(address => uint256) private _released;
+  mapping(address => bool) private _revoked;
 
   /**
    * @dev Creates a vesting contract that vests its balance of any ERC20 token to the
@@ -46,14 +46,14 @@ contract QTChainVesting is Ownable {
    * @param duration duration in seconds of the period in which the tokens will vest
    * @param revocable whether the vesting is revocable or not
    */
-  constructor (address beneficiary, uint256 start, uint256 cliffDuration, uint256 duration, bool revocable) public {
+  constructor (IERC20 token, address beneficiary, uint256 start, uint256 cliffDuration, uint256 duration, bool revocable) public {
     require(beneficiary != address(0), "TokenVesting: beneficiary is the zero address");
     // solhint-disable-next-line max-line-length
     require(cliffDuration <= duration, "TokenVesting: cliff is longer than duration");
     require(duration > 0, "TokenVesting: duration is 0");
     // solhint-disable-next-line max-line-length
     require(start.add(duration) > block.timestamp, "TokenVesting: final time is before current time");
-
+    _token = token;
     _beneficiary = beneficiary;
     _revocable = revocable;
     _duration = duration;
@@ -100,14 +100,14 @@ contract QTChainVesting is Ownable {
    * @return the amount of the token released.
    */
   function released(address token) public view returns (uint256) {
-    return _released[token];
+    return _released[_token];
   }
 
   /**
    * @return true if the token is revoked.
    */
   function revoked(address token) public view returns (bool) {
-    return _revoked[token];
+    return _revoked[_token];
   }
 
   /**
@@ -115,15 +115,15 @@ contract QTChainVesting is Ownable {
    * @param token ERC20 token which is being vested
    */
   function release(IERC20 token) public {
-    uint256 unreleased = _releasableAmount(token);
+    uint256 unreleased = _releasableAmount(_token);
 
     require(unreleased > 0, "TokenVesting: no tokens are due");
 
-    _released[address(token)] = _released[address(token)].add(unreleased);
+    _released[address(_token)] = _released[address(_token)].add(unreleased);
 
-    token.safeTransfer(_beneficiary, unreleased);
+    _token.safeTransfer(_beneficiary, unreleased);
 
-    emit TokensReleased(address(token), unreleased);
+    emit TokensReleased(address(_token), unreleased);
   }
 
   /**
@@ -133,18 +133,18 @@ contract QTChainVesting is Ownable {
    */
   function revoke(IERC20 token) public onlyOwner {
     require(_revocable, "TokenVesting: cannot revoke");
-    require(!_revoked[address(token)], "TokenVesting: token already revoked");
+    require(!_revoked[address(_token)], "TokenVesting: token already revoked");
 
-    uint256 balance = token.balanceOf(address(this));
+    uint256 balance = _token.balanceOf(address(this));
 
-    uint256 unreleased = _releasableAmount(token);
+    uint256 unreleased = _releasableAmount(_token);
     uint256 refund = balance.sub(unreleased);
 
-    _revoked[address(token)] = true;
+    _revoked[address(_token)] = true;
 
-    token.safeTransfer(owner(), refund);
+    _token.safeTransfer(owner(), refund);
 
-    emit TokenVestingRevoked(address(token));
+    emit TokenVestingRevoked(address(_token));
   }
 
   /**
@@ -152,7 +152,7 @@ contract QTChainVesting is Ownable {
    * @param token ERC20 token which is being vested
    */
   function _releasableAmount(IERC20 token) private view returns (uint256) {
-    return _vestedAmount(token).sub(_released[address(token)]);
+    return _vestedAmount(_token).sub(_released[address(_token)]);
   }
 
   /**
@@ -160,12 +160,12 @@ contract QTChainVesting is Ownable {
    * @param token ERC20 token which is being vested
    */
   function _vestedAmount(IERC20 token) private view returns (uint256) {
-    uint256 currentBalance = token.balanceOf(address(this));
-    uint256 totalBalance = currentBalance.add(_released[address(token)]);
+    uint256 currentBalance = _token.balanceOf(address(this));
+    uint256 totalBalance = currentBalance.add(_released[address(_token)]);
 
     if (block.timestamp < _cliff) {
       return 0;
-    } else if (block.timestamp >= _start.add(_duration) || _revoked[address(token)]) {
+    } else if (block.timestamp >= _start.add(_duration) || _revoked[address(_token)]) {
       return totalBalance;
     } else {
       return totalBalance.mul(block.timestamp.sub(_start)).div(_duration);
