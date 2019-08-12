@@ -59,7 +59,6 @@ contract QTChainVesting is Ownable {
    * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
    */
   function lockedBalance(address beneficiary) public view returns (uint256) {
-    require(_lockBalance[beneficiary] > 0, "The account has no lock");
     return _lockBalance[beneficiary];
   }
 
