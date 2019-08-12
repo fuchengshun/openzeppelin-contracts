@@ -84,7 +84,7 @@ contract QTChainVesting is Ownable {
    * @dev Calculates the amount that has already vested but hasn't been released yet.
    * @param token ERC20 token which is being vested
    */
-  function _releasableAmount(address beneficiary) private view returns (uint256) {
+  function _releasableAmount(address beneficiary) public view returns (uint256) {
     return _vestedAmount(beneficiary).sub(_released[beneficiary]);
   }
 
@@ -92,7 +92,7 @@ contract QTChainVesting is Ownable {
    * @dev Calculates the amount that has already vested.
    * @param token ERC20 token which is being vested
    */
-  function _vestedAmount(address beneficiary) private view returns (uint256) {
+  function _vestedAmount(address beneficiary) public view returns (uint256) {
     uint256 totalBalance = _lockBalance[beneficiary];
     return totalBalance.mul(currentPercentage()).div(_hundred);
   }
@@ -100,7 +100,7 @@ contract QTChainVesting is Ownable {
   /**
    * @dev Calculates the percentage that has already vested.
    */
-  function _currentPercentage() private view returns (uint256) {
+  function _currentPercentage() public view returns (uint256) {
     if (block.timestamp < _start) {
       return 0;
     } else if (block.timestamp < _start.add(_oneMonth)) {
