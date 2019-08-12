@@ -59,7 +59,7 @@ contract QTChainVesting is Ownable {
    * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
    */
   function lockBalance(address beneficiary) public view returns (uint256) {
-    return _start;
+    return _lockBalance[beneficiary];
   }
 
   /**
