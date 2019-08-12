@@ -118,7 +118,7 @@ contract QTChainVesting is Ownable {
    * @dev Start a new lock.
    * @param beneficiary address of the beneficiary to whom vested tokens are transferred
    */
-  function newLock(address beneficiary) public payable only_owner {
+  function newLock(address beneficiary) public payable onlyOwner {
     require(block.timestamp < _start, "The lock has begun to release");
     require(msg.value > 0, "The lock amount needs to be greater than 0");
     _lockBalance[msg.sender] += msg.value;
