@@ -37,11 +37,8 @@ contract QTChainVesting is Ownable {
    * @dev Creates a vesting contract that vests its balance of any ERC20 token to the
    * beneficiary, gradually in a linear fashion until start + duration. By then all
    * of the balance will have vested.
-   * @param beneficiary address of the beneficiary to whom vested tokens are transferred
-   * @param cliffDuration duration in seconds of the cliff in which tokens will begin to vest
+   * @param token ERC20 token which is being vested
    * @param start the time (as Unix time) at which point vesting starts
-   * @param duration duration in seconds of the period in which the tokens will vest
-   * @param revocable whether the vesting is revocable or not
    */
   constructor (IERC20 token, uint256 start) public {
     require(start > block.timestamp, "TokenVesting: start time is before current time");
@@ -58,6 +55,7 @@ contract QTChainVesting is Ownable {
 
   /**
    * @return the amount of the token released.
+   * @return beneficiary address of the beneficiary to whom vested tokens are transferred
    */
   function released(address beneficiary) public view returns (uint256) {
     return _released[beneficiary];
@@ -65,7 +63,7 @@ contract QTChainVesting is Ownable {
 
   /**
    * @notice Transfers vested tokens to beneficiary.
-   * @param token ERC20 token which is being vested
+   * @param beneficiary address of the beneficiary to whom vested tokens are transferred
    */
   function release(address beneficiary) public {
     uint256 unreleased = _releasableAmount(beneficiary);
@@ -82,7 +80,7 @@ contract QTChainVesting is Ownable {
 
   /**
    * @dev Calculates the amount that has already vested but hasn't been released yet.
-   * @param token ERC20 token which is being vested
+   * @param beneficiary address of the beneficiary to whom vested tokens are transferred
    */
   function _releasableAmount(address beneficiary) public view returns (uint256) {
     return _vestedAmount(beneficiary).sub(_released[beneficiary]);
@@ -90,7 +88,7 @@ contract QTChainVesting is Ownable {
 
   /**
    * @dev Calculates the amount that has already vested.
-   * @param token ERC20 token which is being vested
+   * @param beneficiary address of the beneficiary to whom vested tokens are transferred
    */
   function _vestedAmount(address beneficiary) public view returns (uint256) {
     uint256 totalBalance = _lockBalance[beneficiary];
