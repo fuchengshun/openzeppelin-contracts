@@ -20,7 +20,7 @@ contract QTChainVesting is Ownable {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
-  event TokensReleased(address token, uint256 amount);
+  event TokensReleased(address beneficiary, uint256 amount);
 
   // Durations and timestamps are expressed in UNIX time, the same units as block.timestamp.
   uint256 constant private _firstMonthPercentage = 10;
