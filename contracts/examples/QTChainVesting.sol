@@ -26,8 +26,8 @@ contract QTChainVesting is Ownable {
   uint256 constant private _firstMonthPercentage = 10;
   uint256 constant private _otherMonthlyPercentage = 15;
   uint256 constant private _hundred = 100;
-  uint256 constant private _oneMonth = 30 days;
-  uint256 constant private _duration = 180 days;
+  uint256 constant private _oneMonth = 3 minutes;
+  uint256 constant private _duration = 18 minutes;
   uint256 private _start;
   IERC20 private _token;
   mapping(address => uint256) private _released;
