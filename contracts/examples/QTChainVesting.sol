@@ -32,6 +32,7 @@ contract QTChainVesting is Ownable {
   IERC20 private _token;
   mapping(address => uint256) private _released;
   mapping(address => uint256) private _lockBalance;
+  uint256 private _totalLockBalance;
 
   /**
    * @dev Creates a vesting contract that vests its balance of any ERC20 token to the
@@ -122,11 +123,17 @@ contract QTChainVesting is Ownable {
 
   /**
    * @dev Start a new lock.
-   * @param beneficiary address of the beneficiary to whom vested tokens are transferred
+   * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
+   * @param lockBalance Lock amount.
    */
-  function newLock(address beneficiary) public payable onlyOwner {
+  function newLock(address beneficiary, uint256 lockBalance) public onlyOwner {
     require(block.timestamp < _start, "The lock has begun to release");
-    require(msg.value > 0, "The lock amount needs to be greater than 0");
-    _lockBalance[beneficiary] += msg.value;
+    require(lockBalance > 0, "The lock amount needs to be greater than 0");
+    require(_lockBalance[beneficiary] == 0, "It is not allowed to modify the account that has been locked");
+    uint256 currentBalance = token.balanceOf(address(this));
+    uint256 totalLock = _totalLockBalance.add(lockBalance);
+    require(currentBalance >= totalLock, "Insufficient account balance");
+    _totalLockBalance = totalLock;
+    _lockBalance[beneficiary] = lockBalance;
   }
 }
