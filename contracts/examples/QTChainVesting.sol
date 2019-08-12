@@ -75,7 +75,7 @@ contract QTChainVesting is Ownable {
    * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
    */
   function release(address beneficiary) public {
-    uint256 unreleased = _releasableAmount(beneficiary);
+    uint256 unreleased = releasableAmount(beneficiary);
 
     require(unreleased > 0, "TokenVesting: no tokens are due");
 
@@ -91,23 +91,23 @@ contract QTChainVesting is Ownable {
    * @dev Calculates the amount that has already vested but hasn't been released yet.
    * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
    */
-  function _releasableAmount(address beneficiary) public view returns (uint256) {
-    return _vestedAmount(beneficiary).sub(_released[beneficiary]);
+  function releasableAmount(address beneficiary) public view returns (uint256) {
+    return vestedAmount(beneficiary).sub(_released[beneficiary]);
   }
 
   /**
    * @dev Calculates the amount that has already vested.
    * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
    */
-  function _vestedAmount(address beneficiary) public view returns (uint256) {
+  function vestedAmount(address beneficiary) public view returns (uint256) {
     uint256 totalBalance = _lockBalance[beneficiary];
-    return totalBalance.mul(_currentPercentage()).div(_hundred);
+    return totalBalance.mul(currentPercentage()).div(_hundred);
   }
 
   /**
    * @dev Calculates the percentage that has already vested.
    */
-  function _currentPercentage() public view returns (uint256) {
+  function currentPercentage() public view returns (uint256) {
     if (block.timestamp < _start) {
       return 0;
     } else if (block.timestamp < _start.add(_oneMonth)) {
@@ -127,6 +127,7 @@ contract QTChainVesting is Ownable {
    * @param lockBalance Lock amount.
    */
   function newLock(address beneficiary, uint256 lockBalance) public onlyOwner {
+    require(beneficiary != address(0), "zero address");
     require(block.timestamp < _start, "The lock has begun to release");
     require(lockBalance > 0, "The lock amount needs to be greater than 0");
     require(_lockBalance[beneficiary] == 0, "It is not allowed to modify the account that has been locked");
