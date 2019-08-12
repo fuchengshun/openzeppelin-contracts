@@ -92,7 +92,7 @@ contract QTChainVesting is Ownable {
    */
   function _vestedAmount(address beneficiary) public view returns (uint256) {
     uint256 totalBalance = _lockBalance[beneficiary];
-    return totalBalance.mul(currentPercentage()).div(_hundred);
+    return totalBalance.mul(_currentPercentage()).div(_hundred);
   }
 
   /**
