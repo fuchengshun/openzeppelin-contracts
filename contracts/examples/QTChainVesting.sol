@@ -54,8 +54,16 @@ contract QTChainVesting is Ownable {
   }
 
   /**
+   * @return the lock amount.
+   * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
+   */
+  function lockBalance(address beneficiary) public view returns (uint256) {
+    return _start;
+  }
+
+  /**
    * @return the amount of the token released.
-   * @return beneficiary address of the beneficiary to whom vested tokens are transferred
+   * @return beneficiary address of the beneficiary to whom vested tokens are transferred.
    */
   function released(address beneficiary) public view returns (uint256) {
     return _released[beneficiary];
@@ -63,7 +71,7 @@ contract QTChainVesting is Ownable {
 
   /**
    * @notice Transfers vested tokens to beneficiary.
-   * @param beneficiary address of the beneficiary to whom vested tokens are transferred
+   * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
    */
   function release(address beneficiary) public {
     uint256 unreleased = _releasableAmount(beneficiary);
@@ -80,7 +88,7 @@ contract QTChainVesting is Ownable {
 
   /**
    * @dev Calculates the amount that has already vested but hasn't been released yet.
-   * @param beneficiary address of the beneficiary to whom vested tokens are transferred
+   * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
    */
   function _releasableAmount(address beneficiary) public view returns (uint256) {
     return _vestedAmount(beneficiary).sub(_released[beneficiary]);
@@ -88,7 +96,7 @@ contract QTChainVesting is Ownable {
 
   /**
    * @dev Calculates the amount that has already vested.
-   * @param beneficiary address of the beneficiary to whom vested tokens are transferred
+   * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
    */
   function _vestedAmount(address beneficiary) public view returns (uint256) {
     uint256 totalBalance = _lockBalance[beneficiary];
@@ -119,6 +127,6 @@ contract QTChainVesting is Ownable {
   function newLock(address beneficiary) public payable onlyOwner {
     require(block.timestamp < _start, "The lock has begun to release");
     require(msg.value > 0, "The lock amount needs to be greater than 0");
-    _lockBalance[msg.sender] += msg.value;
+    _lockBalance[beneficiary] += msg.value;
   }
 }
