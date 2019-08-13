@@ -48,6 +48,27 @@ contract QTChainVesting is Ownable {
   }
 
   /**
+   * @return duration.
+   */
+  function duration() public view returns (uint256) {
+    return _duration;
+  }
+
+  /**
+   * @return other month percentage.
+   */
+  function otherMonthlyPercentage() public view returns (uint256) {
+    return _otherMonthlyPercentage;
+  }
+
+  /**
+   * @return first month percentage.
+   */
+  function firstMonthPercentage() public view returns (uint256) {
+    return _firstMonthPercentage;
+  }
+
+  /**
    * @return the start time of the token vesting.
    */
   function start() public view returns (uint256) {
