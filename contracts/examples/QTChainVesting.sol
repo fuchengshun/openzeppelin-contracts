@@ -50,21 +50,21 @@ contract QTChainVesting is Ownable {
   /**
    * @return duration.
    */
-  function duration() public view returns (uint256) {
+  function duration() public pure returns (uint256) {
     return _duration;
   }
 
   /**
    * @return other month percentage.
    */
-  function otherMonthlyPercentage() public view returns (uint256) {
+  function otherMonthlyPercentage() public pure returns (uint256) {
     return _otherMonthlyPercentage;
   }
 
   /**
    * @return first month percentage.
    */
-  function firstMonthPercentage() public view returns (uint256) {
+  function firstMonthPercentage() public pure returns (uint256) {
     return _firstMonthPercentage;
   }
 
