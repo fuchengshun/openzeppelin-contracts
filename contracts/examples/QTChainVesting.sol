@@ -84,7 +84,7 @@ contract QTChainVesting is Ownable {
   /**
    * set the start time of the token vesting.
    */
-  function setStart(uint256 start) public notStart{
+  function setStart(uint256 start) public onlyOwner notStart{
     _start = start;
   }
 
