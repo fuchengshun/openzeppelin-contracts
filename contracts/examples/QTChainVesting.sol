@@ -26,13 +26,12 @@ contract QTChainVesting is Ownable {
   uint256 constant private _firstMonthPercentage = 10;
   uint256 constant private _otherMonthlyPercentage = 15;
   uint256 constant private _hundred = 100;
-  uint256 constant private _oneMonth = 1 days;
-  uint256 constant private _duration = 6 days;
+  uint256 constant private _oneMonth = 30 days;
+  uint256 constant private _duration = 180 days;
   uint256 private _start;
   IERC20 private _token;
   mapping(address => uint256) private _released;
   mapping(address => uint256) private _lockBalance;
-  uint256 private _totalLockBalance;
 
   /**
    * @dev Creates a vesting contract that vests its balance of any ERC20 token to the
@@ -47,6 +46,13 @@ contract QTChainVesting is Ownable {
     _start = start;
   }
 
+  /**
+   * @dev Throws if called by any account other than the owner.
+   */
+  modifier notStart() {
+    require(block.timestamp < _start, "The lock has begun to release");
+    _;
+  }
   /**
    * @return duration.
    */
@@ -73,6 +79,13 @@ contract QTChainVesting is Ownable {
    */
   function start() public view returns (uint256) {
     return _start;
+  }
+
+  /**
+   * set the start time of the token vesting.
+   */
+  function setStart(uint256 start) public notStart{
+    _start = start;
   }
 
   /**
@@ -147,15 +160,9 @@ contract QTChainVesting is Ownable {
    * @param beneficiary address of the beneficiary to whom vested tokens are transferred.
    * @param lockBalance Lock amount.
    */
-  function newLock(address beneficiary, uint256 lockBalance) public onlyOwner {
+  function newLock(address beneficiary, uint256 lockBalance) public onlyOwner notStart{
     require(beneficiary != address(0), "zero address");
-    require(block.timestamp < _start, "The lock has begun to release");
     require(lockBalance > 0, "The lock amount needs to be greater than 0");
-    require(_lockBalance[beneficiary] == 0, "It is not allowed to modify the account that has been locked");
-    uint256 currentBalance = _token.balanceOf(address(this));
-    uint256 totalLock = _totalLockBalance.add(lockBalance);
-    require(currentBalance >= totalLock, "Insufficient account balance");
-    _totalLockBalance = totalLock;
     _lockBalance[beneficiary] = lockBalance;
   }
 }
